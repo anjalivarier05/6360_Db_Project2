@@ -20,6 +20,9 @@ public class DavisBaseBinaryFileExample {
 	static int pageSizePower = 9;
 	/* This strategy insures that the page size is always a power of 2. */
 	static int pageSize = (int)Math.pow(2, pageSizePower);
+	
+	static String tablesCatalogPath = "data/davisbase_tables.tbl";
+	static String columnsCatalogPath = "data/davisbase_columns.tbl";
 
 
 	public static void main(String[] args) {
@@ -60,6 +63,7 @@ public class DavisBaseBinaryFileExample {
 
 			/* Re-locate the address pointer at the beginning of page 1 and write 
 			 * 0x05 (b-tree interior node) to the first header byte */
+			
 			binaryFile.seek(0);
 			binaryFile.writeByte(0x05);
 
@@ -82,7 +86,7 @@ public class DavisBaseBinaryFileExample {
 			
 			
 			// HexDump.displayBinaryHex(binaryFile, headerEveryNBytes);
-			HexDump.displayBinaryHex(binaryFile, 512);
+			//HexDump.displayBinaryHex(binaryFile, 512);
 			binaryFile.close();
 			
 		}
@@ -122,7 +126,7 @@ public class DavisBaseBinaryFileExample {
 
 		/** Create davisbase_tables system catalog */
 		try {
-			RandomAccessFile davisbaseTablesCatalog = new RandomAccessFile("data/davisbase_tables.tbl", "rw");
+			RandomAccessFile davisbaseTablesCatalog = new RandomAccessFile(tablesCatalogPath, "rw");
 			/* Initially, the file is one page in length */
 			davisbaseTablesCatalog.setLength(pageSize);
 			/* Set file pointer to the beginnning of the file */
@@ -142,7 +146,7 @@ public class DavisBaseBinaryFileExample {
 
 		/** Create davisbase_columns systems catalog */
 		try {
-			RandomAccessFile davisbaseColumnsCatalog = new RandomAccessFile("data/davisbase_columns.tbl", "rw");
+			RandomAccessFile davisbaseColumnsCatalog = new RandomAccessFile(columnsCatalogPath, "rw");
 			/** Initially the file is one page in length */
 			davisbaseColumnsCatalog.setLength(pageSize);
 			davisbaseColumnsCatalog.seek(0);       // Set file pointer to the beginnning of the file
