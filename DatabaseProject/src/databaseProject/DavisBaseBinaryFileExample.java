@@ -95,8 +95,6 @@ public class DavisBaseBinaryFileExample {
 		}
 
 	}
-	
-
 
 	/**
 	 * This static method creates the DavisBase data storage container
