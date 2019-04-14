@@ -206,6 +206,7 @@ public class DavisBasePromptExample {
 	public static void parseQuery(String queryString) {
 		System.out.println("STUB: This is the parseQuery method");
 		System.out.println("\tParsing the string:\"" + queryString + "\"");
+		System.out.println("Added a new statement by priyanka");
 	}
 
 	/**
