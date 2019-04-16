@@ -30,7 +30,12 @@ public class DavisBasePromptExample {
 	 * Page size for alll files is 512 bytes by default.
 	 * You may choose to make it user modifiable
 	 */
-	static long pageSize = 512; 
+	static final int pageSize = 512; 
+	
+	static final int TABLE_LEAF_PAGE = 13;
+	static final int TABLE_INTERIOR_PAGE = 5;
+	static final int INDEX_LEAF_PAGE = 10;
+	static final int INDEX_INTERIOR_PAGE = 2;
 
 	/* 
 	 *  The Scanner class is used to collect user commands from the prompt
@@ -168,6 +173,10 @@ public class DavisBasePromptExample {
 				System.out.println("CASE: CREATE");
 				parseCreateTable(userCommand);
 				break;
+			case "insert":
+				System.out.println("CASE INSERT");
+				parseInsertTable(userCommand);
+				break;
 			case "update":
 				System.out.println("CASE: UPDATE");
 				parseUpdate(userCommand);
@@ -190,6 +199,11 @@ public class DavisBasePromptExample {
 	}
 	
 
+	public static void parseInsertTable(String userCommand) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	/**
 	 *  Stub method for dropping tables
 	 *  @param dropTableString is a String of the user input
@@ -206,6 +220,7 @@ public class DavisBasePromptExample {
 	public static void parseQuery(String queryString) {
 		System.out.println("STUB: This is the parseQuery method");
 		System.out.println("\tParsing the string:\"" + queryString + "\"");
+		System.out.println("Added a new statement by priyanka");
 	}
 
 	/**
@@ -221,15 +236,21 @@ public class DavisBasePromptExample {
 	/**
 	 *  Stub method for creating new tables
 	 *  @param queryString is a String of the user input
+	 *  sample create command
+	 *  create table table_name ( c1 d1 , c2 d2 , ... );
 	 */
 	public static void parseCreateTable(String createTableString) {
 		
+		//when there is a PK in a table create a index file for that table on this PK
+		
 		System.out.println("STUB: Calling your method to create a table");
 		System.out.println("Parsing the string:\"" + createTableString + "\"");
-		ArrayList<String> createTableTokens = new ArrayList<String>(Arrays.asList(createTableString.split(" ")));
-
+		
+		String createTableTokens[] = createTableString.replace(";", " ").replace(")", " ").trim().split("\\(");
+		
 		/* Define table file name */
-		String tableFileName = createTableTokens.get(2) + ".tbl";
+		String table_name = createTableTokens[0].split(" ")[2];
+		String tableFileName = table_name + ".tbl";
 
 		/* YOUR CODE GOES HERE */
 		
@@ -240,8 +261,15 @@ public class DavisBasePromptExample {
 			 */
 			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
 			tableFile.setLength(pageSize);
-			tableFile.seek(0);
-			tableFile.writeInt(63);
+			tableFile.seek(0);//go to start of file to write from here
+			tableFile.writeInt(TABLE_LEAF_PAGE);//type of page
+			tableFile.writeInt(0);//no of records in this page
+			tableFile.writeInt(pageSize);//start of content at this address
+			tableFile.writeInt(-1);//leaf page & the rightmost page
+			
+			//convert this page into hex and see the data
+			
+			
 		}
 		catch(Exception e) {
 			System.out.println(e);
@@ -250,10 +278,33 @@ public class DavisBasePromptExample {
 		/*  Code to insert a row in the davisbase_tables table 
 		 *  i.e. database catalog meta-data 
 		 */
+		String insert ="insert into davisbase_tables values ("+table_name+")";
+		parseInsertTable(insert);
 		
 		/*  Code to insert rows in the davisbase_columns table  
 		 *  for each column in the new table 
 		 *  i.e. database catalog meta-data 
 		 */
+		String attributeList = createTableTokens[1];
+		String[] columns_dataTypes = attributeList.split(", ");
+		//
+		for(int i=0;i<columns_dataTypes.length;i++) {
+			String cd[]=columns_dataTypes[i].trim().split(" ");
+			String column_name=cd[0];
+			String data_type = cd[1];
+			insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
+			parseInsertTable(insert);
+		}
+		
+		/*
+		//strict command format has to followed
+		for(int i=4;i<createTableTokens.size();i=i+2) {
+			String column_name=createTableTokens.get(i);
+			String data_type = createTableTokens.get(i+1);
+			insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
+			parseInsertTable(insert);
+			
+		}
+		*/
 	}
 }
