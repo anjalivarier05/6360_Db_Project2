@@ -82,7 +82,7 @@ public class DavisBaseBinaryFileExample {
 			
 			
 			// HexDump.displayBinaryHex(binaryFile, headerEveryNBytes);
-			HexDump.displayBinaryHex(binaryFile, 512);
+			//HexDump.displayBinaryHex(binaryFile, 512);
 			binaryFile.close();
 			
 		}
