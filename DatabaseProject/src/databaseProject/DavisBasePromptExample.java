@@ -1,12 +1,17 @@
 package databaseProject;
 
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.File;
 import java.io.FileReader;
 import java.util.Scanner;
 import java.util.SortedMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+
 import static java.lang.System.out;
 
 /**
@@ -36,6 +41,14 @@ public class DavisBasePromptExample {
 	static final int TABLE_INTERIOR_PAGE = 5;
 	static final int INDEX_LEAF_PAGE = 10;
 	static final int INDEX_INTERIOR_PAGE = 2;
+	
+	static String workingDirectory = System.getProperty("user.dir"); // gets current working directory
+	static String data_directory = workingDirectory + File.separator + "data" ;
+	static String user_data_directory = data_directory + File.separator + "user_data" ;
+	static String catalog_directory = data_directory + File.separator + "catalog" ;
+
+	static String tablesCatalogPath = catalog_directory + File.separator+ "davisbase_tables.tbl";
+	static String columnsCatalogPath = catalog_directory + File.separator+ "davisbase_columns.tbl";
 
 	/* 
 	 *  The Scanner class is used to collect user commands from the prompt
@@ -50,7 +63,9 @@ public class DavisBasePromptExample {
 	 *  Main method
 	 */
     public static void main(String[] args) {
-
+    	
+    	initializeDataStore();
+    	
 		/* Display the welcome screen */
 		splashScreen();
 
@@ -67,6 +82,88 @@ public class DavisBasePromptExample {
 		System.out.println("Exiting...");
 
 
+	}
+
+	static void initializeDataStore() {
+
+		/** Create data directory at the current OS location to hold */
+		File dataDir = new File(data_directory);
+		File userDataDir = new File(user_data_directory);
+		File catalogDir = new File(catalog_directory);
+		try {
+			if(!dataDir.isDirectory()) {
+				System.out.println("No data dir");
+				dataDir.mkdir();
+				System.out.println("data directory made");
+				userDataDir.mkdir();
+				System.out.println("User data directory made");
+				catalogDir.mkdir();
+				System.out.println("catalog directory made");
+				
+			}else {
+				System.out.println("there is a data directory");
+				if(!userDataDir.isDirectory()) {
+					userDataDir.mkdir();
+					System.out.println("User data directory made");
+				}else {
+					System.out.println("User data directory already there");				
+				}
+				if(!catalogDir.isDirectory()) {
+					catalogDir.mkdir();
+					System.out.println("catalog directory made");
+				}else {
+					System.out.println("catalog directory made");					
+				}
+			}
+			
+			/*
+			String[] oldTableFiles;
+			oldTableFiles = dataDir.list();
+			for (int i = 0; i < oldTableFiles.length; i++) {
+				File anOldFile = new File(dataDir, oldTableFiles[i]);
+				anOldFile.delete();
+			}
+			*/
+		} catch (SecurityException se) {
+			out.println("Unable to create data container directory");
+			out.println(se);
+		}
+
+		/** Create davisbase_tables system catalog */
+		if(Files.notExists(Paths.get(tablesCatalogPath))) {
+			try {
+				RandomAccessFile davisbaseTablesCatalog = new RandomAccessFile(tablesCatalogPath, "rw");
+				davisbaseTablesCatalog.setLength(pageSize);
+				davisbaseTablesCatalog.seek(0);
+				davisbaseTablesCatalog.write(TABLE_LEAF_PAGE);
+				davisbaseTablesCatalog.write(0x00);
+				davisbaseTablesCatalog.writeShort(512);
+				davisbaseTablesCatalog.writeInt(-1);
+				davisbaseTablesCatalog.close();
+			} catch (Exception e) {
+				out.println("Unable to create the database_tables file");
+				out.println(e);
+			}
+			
+		}
+
+		/** Create davisbase_columns systems catalog */
+		if(Files.notExists(Paths.get(columnsCatalogPath))) {
+			try {
+				RandomAccessFile davisbaseColumnsCatalog = new RandomAccessFile(columnsCatalogPath, "rw");
+				davisbaseColumnsCatalog.setLength(pageSize);
+				davisbaseColumnsCatalog.seek(0); // Set file pointer to the beginnning of the file
+				davisbaseColumnsCatalog.write(TABLE_LEAF_PAGE);			
+				davisbaseColumnsCatalog.write(0x00);
+				davisbaseColumnsCatalog.writeShort(512);
+				davisbaseColumnsCatalog.writeInt(-1);			
+				davisbaseColumnsCatalog.close();
+			} catch (Exception e) {
+				out.println("Unable to create the database_columns file");
+				out.println(e);
+			}
+		}
+		
 	}
 
 	/** ***********************************************************************
@@ -152,34 +249,51 @@ public class DavisBasePromptExample {
 		 * The first token can be used to determine the type of command 
 		 * The other tokens can be used to pass relevant parameters to each command-specific
 		 * method inside each case statement */
-		// String[] commandTokens = userCommand.split(" ");
+		// String[] commandTokens = userCommand.split(" ");		
+		
 		ArrayList<String> commandTokens = new ArrayList<String>(Arrays.asList(userCommand.split(" ")));
 		
-
 		/*
 		*  This switch handles a very small list of hardcoded commands of known syntax.
 		*  You will want to rewrite this method to interpret more complex commands. 
 		*/
 		switch (commandTokens.get(0)) {
-			case "select":
-				System.out.println("CASE: SELECT");
-				parseQuery(userCommand);
-				break;
-			case "drop":
-				System.out.println("CASE: DROP");
-				dropTable(userCommand);
-				break;
 			case "create":
 				System.out.println("CASE: CREATE");
 				parseCreateTable(userCommand);
 				break;
 			case "insert":
+				/*
+				1) INSERT INTO table_name (column1, column2, column3, ...)
+				   VALUES (value1, value2, value3, ...);
+				2) INSERT INTO table_name
+				   VALUES (value1, value2, value3, ...);
+				*/
 				System.out.println("CASE INSERT");
 				parseInsertTable(userCommand);
 				break;
+			case "select":
+				//select * from table_name where condition;
+				System.out.println("CASE: SELECT");
+				parseQuery(userCommand);
+				break;
 			case "update":
+				/*
+				 UPDATE table_name
+				 SET column1 = value1, column2 = value2, ...
+				 WHERE condition;
+				*/
 				System.out.println("CASE: UPDATE");
 				parseUpdate(userCommand);
+				break;
+			case "delete":
+				//DELETE FROM table_name WHERE condition;
+				break;
+			case "drop":
+				//DROP TABLE table_name;
+				//drop table delete table_file also
+				System.out.println("CASE: DROP");
+				dropTable(userCommand);
 				break;
 			case "help":
 				help();
@@ -246,65 +360,105 @@ public class DavisBasePromptExample {
 		System.out.println("STUB: Calling your method to create a table");
 		System.out.println("Parsing the string:\"" + createTableString + "\"");
 		
-		String createTableTokens[] = createTableString.replace(";", " ").replace(")", " ").trim().split("\\(");
+		String createTableTokens[] = createTableString.replace(")", " ").trim().split("\\(");
 		
 		/* Define table file name */
 		String table_name = createTableTokens[0].split(" ")[2];
-		String tableFileName = table_name + ".tbl";
+		String insert="";
+		//check if the table already exists
+		if(!tableExists(table_name)) {
+			
+			String attributeList = createTableTokens[1];
+			String[] columns_dataTypes = attributeList.split(",");
+			boolean error=false;
+			for(int i=0;i<columns_dataTypes.length;i++) {
+				String cd[]=columns_dataTypes[i].trim().split(" ");
+				String column_name=cd[0];
+				String data_type = cd[1];
+				System.out.println(column_name+" "+data_type);
+				if(!validDataType(data_type)) {
+					System.out.println("Invalid data type of column "+(i+1));
+					error=true;
+					break;
+				}			
+			}
+			if(!error) {
+				//create file of table
+				createFile(user_data_directory, table_name);
+				
+				//insert table_name in davisbase_tables
+				insert ="insert into davisbase_tables values ("+table_name+")";
+				parseInsertTable(insert);//to implement
+				
+				//insert columns in davisbase_columns
+				for(String t: columns_dataTypes) {
+					String cd[] = t.trim().split(" ");
+					String column_name=cd[0];
+					String data_type = cd[1];
+					insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
+					parseInsertTable(insert);//to implement										
+				}
+				System.out.println("Table created successfully");
+			}
+		}else {
+			System.out.println("Table already exists!!");
+		}
+		
+	}
 
-		/* YOUR CODE GOES HERE */
+	public static void createFile(String file_path, String table_name) {
+
+		String tableFileName = file_path + File.separator + table_name + ".tbl";			
 		
 		/*  Code to create a .tbl file to contain table data */
 		try {
-			/*  Create RandomAccessFile tableFile in read-write mode.
-			 *  Note that this doesn't create the table file in the correct directory structure
-			 */
 			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
 			tableFile.setLength(pageSize);
 			tableFile.seek(0);//go to start of file to write from here
-			tableFile.writeInt(TABLE_LEAF_PAGE);//type of page
-			tableFile.writeInt(0);//no of records in this page
-			tableFile.writeInt(pageSize);//start of content at this address
-			tableFile.writeInt(-1);//leaf page & the rightmost page
-			
-			//convert this page into hex and see the data
-			
-			
+			tableFile.writeByte(TABLE_LEAF_PAGE);//type of page
+			tableFile.writeByte(0);//no of records in this page
+			tableFile.writeShort(512);//start of content at this address 
+			tableFile.writeInt(-1);//leaf page & the rightmost page		
+			tableFile.close();
 		}
 		catch(Exception e) {
 			System.out.println(e);
 		}
+
+	}
+
+	public static boolean validDataType(String data_type) {
+		//check if the data_type entered is valid dataType
+		HashSet<String> data_types = new HashSet<>();
+		data_types.add("int");
+		data_types.add("integer");
+		data_types.add("tinyint");
+		data_types.add("smallint");
+		data_types.add("bigint");
+		data_types.add("float");
+		data_types.add("double");
+		data_types.add("real");
+		data_types.add("bool");
+		data_types.add("boolean");
+		data_types.add("date");
+		data_types.add("datetime");
+		data_types.add("char");
+		data_types.add("varchar");
+		data_types.add("text");
 		
-		/*  Code to insert a row in the davisbase_tables table 
-		 *  i.e. database catalog meta-data 
-		 */
-		String insert ="insert into davisbase_tables values ("+table_name+")";
-		parseInsertTable(insert);
-		
-		/*  Code to insert rows in the davisbase_columns table  
-		 *  for each column in the new table 
-		 *  i.e. database catalog meta-data 
-		 */
-		String attributeList = createTableTokens[1];
-		String[] columns_dataTypes = attributeList.split(", ");
-		//
-		for(int i=0;i<columns_dataTypes.length;i++) {
-			String cd[]=columns_dataTypes[i].trim().split(" ");
-			String column_name=cd[0];
-			String data_type = cd[1];
-			insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
-			parseInsertTable(insert);
-		}
-		
-		/*
-		//strict command format has to followed
-		for(int i=4;i<createTableTokens.size();i=i+2) {
-			String column_name=createTableTokens.get(i);
-			String data_type = createTableTokens.get(i+1);
-			insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
-			parseInsertTable(insert);
-			
-		}
-		*/
+		if(data_types.contains(data_type))
+			return true;	
+		else if(data_types.contains(data_type.split("\\(")[0]))//for varchar(80), char(20), etc
+			return true;
+		return false;
+	}
+
+	public static boolean tableExists(String table_name) {
+		//drop table delete tables file also
+		//check in davisbase_tables table if a table with name table_name exists
+		File file = new File(user_data_directory+File.separator+table_name+".tbl");
+		if(file.exists() && !file.isDirectory())
+			return true;
+		return false;
 	}
 }
