@@ -334,7 +334,66 @@ public class DavisBasePromptExample {
 	public static void parseQuery(String queryString) {
 		System.out.println("STUB: This is the parseQuery method");
 		System.out.println("\tParsing the string:\"" + queryString + "\"");
-		System.out.println("Added a new statement by priyanka");
+
+		boolean isAll = false;
+		boolean isCondition = false;
+		String condition = "", select_coloumns = "";
+
+		String where[], from[], select[];
+		String table_name = "";
+
+		if (queryString.indexOf("where") != -1) {
+			isCondition = true;
+			where = queryString.split("where");
+			condition = where[1].trim();
+
+			from = where[0].trim().split("from");
+			table_name = from[1].trim();
+
+			select = from[0].trim().split("select");
+			if (select[1].trim().equalsIgnoreCase("*"))
+				isAll = true;
+			else
+				select_coloumns = select[1];
+		} else {
+			from = queryString.split("from");
+			table_name = from[1].trim();
+			select = from[0].trim().split("select");
+			if (select[1].trim().equalsIgnoreCase("*")) {
+				isAll = true;
+			} else
+				select_coloumns = select[1];
+		}
+		// all is for columns & condition is for rows
+		executeSelect(select_coloumns, table_name, condition, isAll, isCondition);
+
+	}
+	
+	public static void executeSelect(String select_coloumns, String table_name, String condition, boolean isAll,
+			boolean isCondition) {
+
+		if (!isAll) {
+			String columns[] = select_coloumns.split(",");
+			for (int i = 0; i < columns.length; i++) {
+				columns[i] = columns[i].trim();
+			}
+			// something to do here
+		}
+
+		if (isAll && !isCondition) {
+			// display everything in the table
+			System.out.println("isAll n no condition");
+		} else if (isAll && isCondition) {
+			// display all that satisfy the 'condition'
+			System.out.println("* with where");
+		} else if (!isAll && !isCondition) {
+			// display only 'select_columns' and all rows
+			System.out.println("some cols with NO where");
+		} else if (!isAll && isCondition) {
+			// display 'select_columns' and those rows that satisfy the 'condition'
+			System.out.println("some cols with where");
+		}
+
 	}
 
 	/**
@@ -350,8 +409,6 @@ public class DavisBasePromptExample {
 	/**
 	 *  Stub method for creating new tables
 	 *  @param queryString is a String of the user input
-	 *  sample create command
-	 *  create table table_name ( c1 d1 , c2 d2 , ... );
 	 */
 	public static void parseCreateTable(String createTableString) {
 		
@@ -367,38 +424,41 @@ public class DavisBasePromptExample {
 		String insert="";
 		//check if the table already exists
 		if(!tableExists(table_name)) {
-			
-			String attributeList = createTableTokens[1];
-			String[] columns_dataTypes = attributeList.split(",");
-			boolean error=false;
-			for(int i=0;i<columns_dataTypes.length;i++) {
-				String cd[]=columns_dataTypes[i].trim().split(" ");
-				String column_name=cd[0];
-				String data_type = cd[1];
-				System.out.println(column_name+" "+data_type);
-				if(!validDataType(data_type)) {
-					System.out.println("Invalid data type of column "+(i+1));
-					error=true;
-					break;
-				}			
-			}
-			if(!error) {
-				//create file of table
-				createFile(user_data_directory, table_name);
-				
-				//insert table_name in davisbase_tables
-				insert ="insert into davisbase_tables values ("+table_name+")";
-				parseInsertTable(insert);//to implement
-				
-				//insert columns in davisbase_columns
-				for(String t: columns_dataTypes) {
-					String cd[] = t.trim().split(" ");
+			if(createTableTokens.length==1) {
+				System.out.println("Invalid command: Attribute List Missing");
+			}else {
+				String attributeList = createTableTokens[1];
+				String[] columns_dataTypes = attributeList.split(",");
+				boolean error=false;
+				for(int i=0;i<columns_dataTypes.length;i++) {
+					String cd[]=columns_dataTypes[i].trim().split(" ");
 					String column_name=cd[0];
 					String data_type = cd[1];
-					insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
-					parseInsertTable(insert);//to implement										
+					System.out.println(column_name+" "+data_type);
+					if(!validDataType(data_type)) {
+						System.out.println("Invalid command: Wrong data type of column "+(i+1));
+						error=true;
+						break;
+					}			
 				}
-				System.out.println("Table created successfully");
+				if(!error) {
+					//create file of table
+					createFile(user_data_directory, table_name);
+					
+					//insert table_name in davisbase_tables
+					insert ="insert into davisbase_tables values ("+table_name+")";
+					parseInsertTable(insert);//to implement
+					
+					//insert columns in davisbase_columns
+					for(String t: columns_dataTypes) {
+						String cd[] = t.trim().split(" ");
+						String column_name=cd[0];
+						String data_type = cd[1];
+						insert = "insert into davisbase_columns(table_name, column_name, data_type) values ("+table_name+", "+column_name+", "+data_type+")";
+						parseInsertTable(insert);//to implement										
+					}
+					System.out.println("Table created successfully");
+				}
 			}
 		}else {
 			System.out.println("Table already exists!!");
