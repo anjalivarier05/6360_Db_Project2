@@ -48,7 +48,7 @@ public class DavisBaseBinaryFileExample {
 			out.println("The file is now " + binaryFile.length() + " bytes long");
 			out.println("The file is now " + binaryFile.length() / pageSize + " pages long");
 			out.println();
-			
+
 			/* Increase the file size to be 1024, i.e. 2 x 512B */
 			binaryFile.setLength(pageSize * 2);
 			out.println("The file is now " + binaryFile.length() + " bytes long");
